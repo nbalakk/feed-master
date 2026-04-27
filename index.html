@@ -1,0 +1,2615 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Фид-Мастер 2.5 — Генератор и Сборщик XML</title>
+
+<style>
+  /* ==========================================================================
+     ЦВЕТОВАЯ СИСТЕМА: светлая тема (по умолчанию)
+     ========================================================================== */
+  :root {
+    --bg:             #f4f6fb;
+    --surface:        #ffffff;
+    --surface-2:      #f8fafc;
+    --surface-3:      #f1f5f9;
+    --border:         #e2e8f0;
+    --border-strong:  #cbd5e1;
+
+    --text:           #0f172a;
+    --text-muted:     #64748b;
+    --text-soft:      #94a3b8;
+
+    --primary:        #2563eb;
+    --primary-hover:  #1d4ed8;
+    --primary-soft:   #eff6ff;
+    --primary-border: #dbeafe;
+
+    --accent:         #7c3aed;
+    --accent-soft:    #f5f3ff;
+    --accent-border:  #ddd6fe;
+
+    --success:        #059669;
+    --success-soft:   #ecfdf5;
+    --success-border: #a7f3d0;
+    --success-text:   #065f46;
+
+    --warning:        #d97706;
+    --warning-soft:   #fffbeb;
+    --warning-text:   #92400e;
+
+    --danger:         #dc2626;
+    --danger-soft:    #fef2f2;
+    --danger-text:    #991b1b;
+
+    --info:           #0284c7;
+
+    --head-bg:        #1e293b;
+    --head-text:      #ffffff;
+
+    --shadow-sm:      0 1px 2px rgba(15,23,42,.05);
+    --shadow:         0 1px 3px rgba(15,23,42,.08), 0 1px 2px rgba(15,23,42,.04);
+
+    --focus-ring:      rgba(37,99,235,.14);
+    --focus-ring-soft: rgba(37,99,235,.12);
+
+    --chip-bg:        #ffffff;
+
+    --radius-sm:      6px;
+    --radius:         10px;
+    --radius-lg:      14px;
+    --mono:           ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  }
+
+  /* ==========================================================================
+     ЦВЕТОВАЯ СИСТЕМА: тёмная тема
+     ========================================================================== */
+  html[data-theme="dark"] {
+    --bg:             #0f1419;
+    --surface:        #161b22;
+    --surface-2:      #1c2128;
+    --surface-3:      #22272e;
+    --border:         #2d3440;
+    --border-strong:  #3d4452;
+
+    --text:           #e6edf3;
+    --text-muted:     #8b949e;
+    --text-soft:      #6e7681;
+
+    --primary:        #4f8cf7;
+    --primary-hover:  #6ea3ff;
+    --primary-soft:   #172554;
+    --primary-border: #1e3a8a;
+
+    --accent:         #a78bfa;
+    --accent-soft:    #2e1065;
+    --accent-border:  #5b21b6;
+
+    --success:        #34d399;
+    --success-soft:   #064e3b;
+    --success-border: #065f46;
+    --success-text:   #6ee7b7;
+
+    --warning:        #fbbf24;
+    --warning-soft:   #451a03;
+    --warning-text:   #fcd34d;
+
+    --danger:         #f87171;
+    --danger-soft:    #450a0a;
+    --danger-text:    #fca5a5;
+
+    --info:           #38bdf8;
+
+    --head-bg:        #0d1117;
+    --head-text:      #e6edf3;
+
+    --shadow-sm:      0 1px 2px rgba(0,0,0,.3);
+    --shadow:         0 2px 6px rgba(0,0,0,.35), 0 1px 3px rgba(0,0,0,.2);
+
+    --focus-ring:      rgba(79,140,247,.25);
+    --focus-ring-soft: rgba(79,140,247,.2);
+
+    --chip-bg:        #161b22;
+
+    color-scheme: dark;
+  }
+
+  /* ==========================================================================
+     БАЗОВЫЕ СТИЛИ
+     ========================================================================== */
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+                 "Helvetica Neue", Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    padding: 32px 20px;
+    transition: background-color .3s ease, color .3s ease;
+  }
+
+  .app { max-width: 1240px; margin: 0 auto; }
+
+  /* ==========================================================================
+     ШАПКА
+     ========================================================================== */
+  .app-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 28px;
+  }
+
+  .app-logo {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    box-shadow: var(--shadow);
+    flex-shrink: 0;
+  }
+
+  .app-title { min-width: 0; flex: 1; }
+  .app-title h1 {
+    font-size: 22px;
+    margin: 0;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    color: var(--text);
+  }
+  .app-title p {
+    margin: 2px 0 0;
+    color: var(--text-muted);
+    font-size: 13.5px;
+  }
+
+  .ver-badge {
+    background: var(--primary-soft);
+    color: var(--primary);
+    padding: 5px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    border: 1px solid var(--primary-border);
+    transition: background .3s, color .3s, border-color .3s;
+  }
+
+  .theme-toggle {
+    width: 40px;
+    height: 40px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 18px;
+    transition: background .2s, border-color .2s, transform .1s;
+  }
+  .theme-toggle:hover {
+    background: var(--surface-2);
+    border-color: var(--border-strong);
+    transform: translateY(-1px);
+  }
+  .theme-toggle:active { transform: translateY(0); }
+
+  /* ==========================================================================
+     КАРТОЧКИ
+     ========================================================================== */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 22px 24px;
+    margin-bottom: 16px;
+    box-shadow: var(--shadow-sm);
+    transition: background-color .3s, border-color .3s, box-shadow .2s;
+  }
+  .card:hover { box-shadow: var(--shadow); }
+
+  .card-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+
+  .step-num {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: var(--primary);
+    color: #fff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  .card-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .card-title .sub {
+    color: var(--text-muted);
+    font-weight: 400;
+    font-size: 13px;
+    margin-left: 6px;
+  }
+
+  .card-accent {
+    background: linear-gradient(180deg, var(--accent-soft), var(--surface));
+    border-color: var(--accent-border);
+  }
+  .card-accent .card-title { color: var(--accent); }
+
+  /* ==========================================================================
+     ФОРМЫ
+     ========================================================================== */
+  label {
+    display: block;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+  }
+
+  input[type="text"],
+  input[type="number"],
+  input[type="file"],
+  input[type="search"],
+  select {
+    width: 100%;
+    padding: 10px 12px;
+    font-size: 14px;
+    font-family: inherit;
+    color: var(--text);
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    transition: border-color .15s, box-shadow .15s, background-color .3s, color .3s;
+  }
+  input[type="text"]:hover,
+  input[type="number"]:hover,
+  select:hover {
+    border-color: var(--border-strong);
+  }
+  input:focus, select:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px var(--focus-ring);
+  }
+
+  input[type="file"] { padding: 8px; cursor: pointer; }
+  input[type="file"]::file-selector-button {
+    padding: 7px 14px;
+    margin-right: 12px;
+    background: var(--surface-2);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-weight: 500;
+    font-size: 13px;
+    cursor: pointer;
+    transition: background .15s;
+  }
+  input[type="file"]::file-selector-button:hover {
+    background: var(--surface-3);
+  }
+
+  .grid { display: grid; gap: 14px; }
+  .grid-2 { grid-template-columns: 1fr 1fr; }
+  @media (max-width: 720px) {
+    .grid-2 { grid-template-columns: 1fr; }
+  }
+
+  /* ==========================================================================
+     SEGMENTED CONTROL (радио-группа)
+     ========================================================================== */
+  .segmented {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .segmented input[type="radio"] { display: none; }
+
+  .seg-label {
+    text-align: center;
+    padding: 12px 14px;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    background: var(--surface-2);
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-muted);
+    transition: all .15s;
+  }
+  .seg-label:hover {
+    border-color: var(--border-strong);
+    background: var(--surface);
+    color: var(--text);
+  }
+  .segmented input[type="radio"]:checked + .seg-label {
+    border-color: var(--primary);
+    background: var(--primary-soft);
+    color: var(--primary);
+    box-shadow: 0 0 0 3px var(--focus-ring-soft);
+  }
+
+  /* ==========================================================================
+     ТАБЫ
+     ========================================================================== */
+  .tabs {
+    display: flex;
+    gap: 4px;
+    background: var(--surface-2);
+    padding: 4px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    margin-bottom: 12px;
+  }
+  .tab {
+    flex: 1;
+    text-align: center;
+    padding: 9px 14px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 13.5px;
+    font-weight: 500;
+    color: var(--text-muted);
+    transition: all .15s;
+    user-select: none;
+  }
+  .tab:hover { color: var(--text); }
+  .tab.active {
+    background: var(--surface);
+    color: var(--primary);
+    box-shadow: var(--shadow-sm);
+    font-weight: 600;
+  }
+  .tab[disabled] {
+    opacity: .4;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  /* ==========================================================================
+     МУЛЬТИСЕЛЕКТ КАТЕГОРИЙ
+     ========================================================================== */
+  .ms {
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+  }
+
+  .ms-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    padding: 10px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface-2);
+    border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  }
+
+  .ms-search { flex: 1; min-width: 180px; }
+  .ms-search input { padding: 8px 10px; font-size: 13px; }
+
+  .ms-tool-btn {
+    padding: 7px 12px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-family: inherit;
+    transition: all .15s;
+    white-space: nowrap;
+  }
+  .ms-tool-btn:hover {
+    background: var(--primary-soft);
+    color: var(--primary);
+    border-color: var(--primary-border);
+  }
+
+  .ms-counter {
+    font-size: 12px;
+    color: var(--text-muted);
+    padding: 4px 10px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    font-weight: 600;
+  }
+  .ms-counter strong { color: var(--primary); }
+
+  .ms-list {
+    max-height: 280px;
+    overflow-y: auto;
+    padding: 4px;
+  }
+  .ms-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background .1s;
+    user-select: none;
+  }
+  .ms-item:hover { background: var(--surface-2); }
+  .ms-item input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+    accent-color: var(--primary);
+    flex-shrink: 0;
+  }
+  .ms-item-label {
+    flex: 1;
+    font-size: 13.5px;
+    color: var(--text);
+  }
+  .ms-item-count {
+    font-size: 11.5px;
+    color: var(--text-muted);
+    font-family: var(--mono);
+    background: var(--surface-2);
+    padding: 2px 7px;
+    border-radius: 3px;
+  }
+  .ms-item.checked { background: var(--primary-soft); }
+  .ms-item.checked:hover { filter: brightness(1.08); }
+  .ms-item.checked .ms-item-label {
+    color: var(--primary);
+    font-weight: 500;
+  }
+
+  .ms-empty {
+    padding: 20px;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 13px;
+  }
+
+  .ms-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 10px;
+    border-top: 1px solid var(--border);
+    background: var(--surface-2);
+    border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+    min-height: 50px;
+  }
+  .ms-chips:empty::before {
+    content: 'Ничего не выбрано. Кликните по категории выше.';
+    color: var(--text-soft);
+    font-size: 12.5px;
+    font-style: italic;
+    width: 100%;
+    text-align: center;
+  }
+
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 6px 5px 10px;
+    background: var(--chip-bg);
+    border: 1px solid var(--primary);
+    color: var(--primary);
+    font-size: 12.5px;
+    font-weight: 500;
+    border-radius: 999px;
+  }
+  .chip-x {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--primary-soft);
+    color: var(--primary);
+    font-size: 12px;
+    cursor: pointer;
+    font-weight: 700;
+    transition: background .15s, color .15s;
+  }
+  .chip-x:hover {
+    background: var(--danger-soft);
+    color: var(--danger);
+  }
+
+  /* ==========================================================================
+     КНОПКИ
+     ========================================================================== */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    border: none;
+    padding: 11px 18px;
+    border-radius: var(--radius-sm);
+    font-size: 14px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    color: #fff;
+    transition: background .15s, transform .08s, box-shadow .15s, filter .15s;
+    white-space: nowrap;
+  }
+  .btn:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow);
+    filter: brightness(1.05);
+  }
+  .btn:active { transform: translateY(0); }
+
+  .btn-main {
+    background: var(--primary);
+    width: 100%;
+    padding: 14px;
+    font-size: 15px;
+    margin: 6px 0 18px;
+  }
+  .btn-main:hover { background: var(--primary-hover); }
+
+  .btn-info    { background: var(--info); }
+  .btn-warning { background: var(--warning); color: #fff; }
+  html[data-theme="dark"] .btn-warning { color: #1a1a1a; }
+  .btn-success { background: var(--success); }
+  html[data-theme="dark"] .btn-success { color: #0a2819; }
+
+  .btn-ghost {
+    background: var(--surface);
+    color: var(--text);
+    border: 1.5px solid var(--border);
+  }
+  .btn-ghost:hover {
+    background: var(--surface-2);
+    border-color: var(--border-strong);
+  }
+
+  /* ==========================================================================
+     АЛЕРТЫ
+     ========================================================================== */
+  .alert {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 12px 16px;
+    border-radius: var(--radius-sm);
+    font-size: 14px;
+    font-weight: 500;
+    border-left: 3px solid;
+    margin: 14px 0;
+  }
+  .alert-info    { background: var(--primary-soft); color: var(--primary);      border-color: var(--primary); }
+  .alert-success { background: var(--success-soft); color: var(--success-text); border-color: var(--success); }
+  .alert-warning { background: var(--warning-soft); color: var(--warning-text); border-color: var(--warning); }
+  .alert-error   { background: var(--danger-soft);  color: var(--danger-text);  border-color: var(--danger); }
+  .alert-hidden  { display: none; }
+
+  /* ==========================================================================
+     ПРОЧИЕ БЛОКИ
+     ========================================================================== */
+  .file-info {
+    margin-top: 10px;
+    font-size: 13px;
+    color: var(--text-muted);
+    padding: 8px 12px;
+    background: var(--primary-soft);
+    border-radius: 4px;
+    border-left: 3px solid var(--primary);
+  }
+  .file-info strong { color: var(--primary); }
+
+  .export-panel {
+    display: none;
+    margin: 20px 0 18px;
+    padding: 18px;
+    background: linear-gradient(180deg, var(--success-soft), var(--surface));
+    border: 1px solid var(--success-border);
+    border-radius: var(--radius-lg);
+  }
+  .export-panel.visible { display: block; }
+  .export-panel .ep-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--success-text);
+    margin-bottom: 12px;
+  }
+  .export-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .toggle-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    user-select: none;
+    transition: background .15s, border-color .15s;
+  }
+  .toggle-row:hover {
+    background: var(--surface);
+    border-color: var(--border-strong);
+  }
+  .toggle-row input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    accent-color: var(--primary);
+    flex-shrink: 0;
+  }
+  .toggle-row .tl-main {
+    font-weight: 600;
+    color: var(--text);
+    font-size: 14px;
+  }
+  .toggle-row .tl-sub {
+    color: var(--text-muted);
+    font-size: 12.5px;
+    margin-top: 2px;
+  }
+
+  .limit-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .limit-row label {
+    margin: 0;
+    font-weight: 500;
+    color: var(--text);
+    font-size: 14px;
+  }
+  .limit-input {
+    width: 90px !important;
+    text-align: center;
+    font-weight: 600;
+    font-family: var(--mono);
+  }
+  .limit-hint {
+    font-size: 12.5px;
+    color: var(--text-muted);
+  }
+
+  .hint {
+    font-size: 12.5px;
+    color: var(--text-muted);
+    margin-top: 8px;
+  }
+  .hint strong { color: var(--text); }
+
+  /* ==========================================================================
+     ТАБЛИЦА РЕЗУЛЬТАТОВ
+     ========================================================================== */
+  .results {
+    display: none;
+    margin-top: 18px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+    transition: background-color .3s, border-color .3s;
+  }
+  .results.visible { display: block; }
+  .results-scroll {
+    max-height: 680px;
+    overflow-y: auto;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+  }
+  thead th {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    background: var(--head-bg);
+    color: var(--head-text);
+    padding: 13px 16px;
+    text-align: left;
+    font-size: 13px;
+    font-weight: 600;
+  }
+  tbody td {
+    padding: 14px 16px;
+    vertical-align: top;
+    border-top: 1px solid var(--border);
+    color: var(--text);
+  }
+  tbody tr:hover td { background: var(--surface-2); }
+  tbody td.col-id {
+    font-weight: 700;
+    font-family: var(--mono);
+    font-size: 13px;
+  }
+
+  .variant-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+  .variant-row:last-child { margin-bottom: 0; }
+
+  .id-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 72px;
+    padding: 6px 8px;
+    background: var(--surface-2);
+    color: var(--text-muted);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-size: 11.5px;
+    font-weight: 700;
+    font-family: var(--mono);
+    cursor: pointer;
+    user-select: none;
+    flex-shrink: 0;
+    transition: all .15s;
+  }
+  .id-badge:hover {
+    background: var(--primary-soft);
+    color: var(--primary);
+    border-color: var(--primary-border);
+  }
+  .id-badge.copied {
+    background: var(--success);
+    color: #fff;
+    border-color: var(--success);
+  }
+  html[data-theme="dark"] .id-badge.copied { color: #0a2819; }
+
+  .input-wrap {
+    flex: 1;
+    position: relative;
+  }
+  .edit-input {
+    width: 100%;
+    padding: 9px 78px 9px 12px;
+    font-size: 14px;
+    font-family: inherit;
+    color: var(--text);
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    transition: border-color .15s, background-color .15s, box-shadow .15s, color .3s;
+  }
+  .edit-input:focus {
+    outline: none;
+    border-color: var(--primary);
+    background: var(--primary-soft);
+    box-shadow: 0 0 0 3px var(--focus-ring-soft);
+  }
+  .edit-input.over {
+    border-color: var(--danger);
+    background: var(--danger-soft);
+    color: var(--danger-text);
+  }
+  html[data-theme="dark"] .edit-input.over { color: var(--text); }
+
+  .char-counter {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 4px;
+    background: var(--surface-3);
+    color: var(--text-muted);
+    font-family: var(--mono);
+    transition: background .15s, color .15s;
+    pointer-events: none;
+    white-space: nowrap;
+  }
+  .char-counter.over {
+    background: var(--danger);
+    color: #fff;
+    animation: cntPulse 1.6s ease-in-out infinite;
+  }
+  @keyframes cntPulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(220,38,38,.55); }
+    50%      { box-shadow: 0 0 0 5px rgba(220,38,38,0); }
+  }
+
+  /* ==========================================================================
+     СКРОЛЛБАР для тёмной темы
+     ========================================================================== */
+  html[data-theme="dark"] ::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+  }
+  html[data-theme="dark"] ::-webkit-scrollbar-track {
+    background: var(--bg);
+  }
+  html[data-theme="dark"] ::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 6px;
+    border: 3px solid var(--bg);
+  }
+  html[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
+    background: var(--border-strong);
+  }
+
+  .app-footer {
+    margin-top: 28px;
+    font-size: 12.5px;
+    color: var(--text-soft);
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ==========================================================================
+       ШАПКА ПРИЛОЖЕНИЯ
+       ========================================================================== -->
+  <div class="app-header">
+    <div class="app-logo">🚀</div>
+    <div class="app-title">
+      <h1>Фид-Мастер — Умное распушение XML</h1>
+      <p>40+ категорий в нейро-словаре · морфология · выбор категорий из фида · тёмная тема</p>
+    </div>
+    <span class="ver-badge">v2.5</span>
+    <button class="theme-toggle" id="themeToggle" title="Переключить тему">🌙</button>
+  </div>
+
+  <!-- ==========================================================================
+       ШАГ 1: ЗАГРУЗКА ФАЙЛА
+       ========================================================================== -->
+  <div class="card">
+    <div class="card-head">
+      <span class="step-num">1</span>
+      <span class="card-title">
+        Загрузите исходный XML-фид
+        <span class="sub">формат Яндекс Директ (.xml / .yml)</span>
+      </span>
+    </div>
+    <input type="file" id="fileInput" accept=".xml,.yml">
+    <div id="fileInfo" class="file-info" style="display:none"></div>
+  </div>
+
+  <!-- ==========================================================================
+       ШАГ 2: ГДЕ ИСКАТЬ
+       ========================================================================== -->
+  <div class="card">
+    <div class="card-head">
+      <span class="step-num">2</span>
+      <span class="card-title">
+        Где искать совпадения?
+        <span class="sub">обязательный выбор</span>
+      </span>
+    </div>
+    <div class="segmented">
+      <div>
+        <input type="radio" id="searchName" name="searchTarget" value="name">
+        <label class="seg-label" for="searchName">В названии товара &lt;name&gt;</label>
+      </div>
+      <div>
+        <input type="radio" id="searchCat" name="searchTarget" value="category">
+        <label class="seg-label" for="searchCat">В категории &lt;param name="Категория"&gt;</label>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       ШАГ 3: ЧТО ИСКАТЬ (ручной ввод ИЛИ выбор из списка)
+       ========================================================================== -->
+  <div class="card">
+    <div class="card-head">
+      <span class="step-num">3</span>
+      <span class="card-title">Что ищем?</span>
+    </div>
+
+    <div class="tabs" id="searchTabs">
+      <div class="tab" data-tab="list" id="tabList">📋 Выбрать из списка фида</div>
+      <div class="tab active" data-tab="manual" id="tabManual">⌨️ Ввести вручную</div>
+    </div>
+
+    <div class="tab-panel active" id="panelManual">
+      <input type="text" id="keywordInput"
+             placeholder="Например: спин-байк, машина смита, беговая дорожка">
+      <div class="hint">Слова или сегменты через запятую. Регистр не важен.</div>
+    </div>
+
+    <div class="tab-panel" id="panelList">
+      <div class="ms">
+        <div class="ms-toolbar">
+          <div class="ms-search">
+            <input type="search" id="msSearch" placeholder="🔍 Найти категорию...">
+          </div>
+          <button type="button" class="ms-tool-btn" id="msAll">Выбрать все</button>
+          <button type="button" class="ms-tool-btn" id="msNone">Снять всё</button>
+          <button type="button" class="ms-tool-btn" id="msInvert">Инвертировать</button>
+          <span class="ms-counter" id="msCounter"><strong>0</strong> из 0</span>
+        </div>
+        <div class="ms-list" id="msList">
+          <div class="ms-empty">Загрузите XML-файл — здесь появятся категории из фида</div>
+        </div>
+        <div class="ms-chips" id="msChips"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       ОПЦИЯ: СИНОНИМИЗАЦИЯ
+       ========================================================================== -->
+  <div class="card card-accent">
+    <div class="card-head">
+      <span class="card-title">🔄 Опционально: замена слова (синонимизация)</span>
+    </div>
+    <div class="grid grid-2">
+      <div>
+        <label>Что заменить</label>
+        <input type="text" id="wordToReplace" placeholder="Напр.: Спин-байк">
+      </div>
+      <div>
+        <label>На что заменить</label>
+        <input type="text" id="replacementWord" placeholder="Напр.: Сайкл-байк">
+      </div>
+    </div>
+    <div style="margin-top:12px">
+      <label>В скольких вариантах из 4-х применить замену?</label>
+      <select id="replaceCount">
+        <option value="0">Не заменять</option>
+        <option value="1">В 1 варианте</option>
+        <option value="2" selected>В 2 вариантах (оптимально)</option>
+        <option value="3">В 3 вариантах</option>
+        <option value="4">Во всех 4 вариантах</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       ПАРАМЕТРЫ ГЕНЕРАЦИИ
+       ========================================================================== -->
+  <div class="card">
+    <div class="card-head">
+      <span class="card-title">⚙️ Генерация: приставки, суффиксы, склонение и лимит</span>
+    </div>
+
+    <div class="grid grid-2">
+      <div>
+        <label>Приставки (через запятую)</label>
+        <input type="text" id="prefixesInput" placeholder="Оставьте пустым — умный подбор">
+      </div>
+      <div>
+        <label>Суффиксы/хвосты (через запятую)</label>
+        <input type="text" id="suffixesInput" placeholder="Оставьте пустым — умный подбор">
+      </div>
+    </div>
+
+    <div style="margin-top:14px">
+      <label class="toggle-row" for="useMorph">
+        <input type="checkbox" id="useMorph" checked>
+        <span>
+          <div class="tl-main">🧠 Умное склонение (морфология)</div>
+          <div class="tl-sub">
+            После «Купить / Заказать / Приобрести» ядро ставится в винительный падеж:
+            «Купить беговую дорожку». Отключите, если хотите оставлять именительный.
+          </div>
+        </span>
+      </label>
+    </div>
+
+    <div style="margin-top:14px; padding-top:14px; border-top:1px dashed var(--border);">
+      <div class="limit-row">
+        <label for="maxLenInput">📏 Лимит символов на заголовок:</label>
+        <input type="number" id="maxLenInput" class="limit-input"
+               min="20" max="200" step="1" value="56">
+        <span class="limit-hint">
+          По умолчанию <strong>56</strong> (Яндекс.Директ). Подсветка — только при превышении.
+        </span>
+      </div>
+    </div>
+
+    <div class="hint" style="margin-top:12px">
+      💡 Нейро-словарь покрывает кардио, силовые, снаряды, единоборства, детское, игровые столы и др.
+      Английские артикулы (Carbon T606, PRO ATM 7000, DFC) не трогаются при любом режиме.
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       ГЛАВНАЯ КНОПКА
+       ========================================================================== -->
+  <button class="btn btn-main" onclick="processFile()">
+    ⚙️ Найти товары и сгенерировать дубли (x4)
+  </button>
+
+  <div id="status" class="alert alert-hidden"></div>
+
+  <!-- ==========================================================================
+       ПАНЕЛЬ ВЫГРУЗКИ
+       ========================================================================== -->
+  <div class="export-panel" id="exportPanel">
+    <div class="ep-title">
+      ✅ Готово! Можете вручную подправить названия в белых полях. Затем выберите формат выгрузки:
+    </div>
+    <div class="export-actions">
+      <button class="btn btn-info"    onclick="downloadCSV()">📊 Скачать CSV (Excel)</button>
+      <button class="btn btn-warning" onclick="buildPartialXML()">✂️ Скачать ТОЛЬКО новые офферы</button>
+      <button class="btn btn-success" onclick="buildXML()">🔥 Скачать ПОЛНЫЙ фид</button>
+      <button class="btn btn-ghost"   onclick="fitAllToLimit()" id="fitBtn">📏 Подогнать всё под 56</button>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       ТАБЛИЦА РЕЗУЛЬТАТОВ
+       ========================================================================== -->
+  <div class="results" id="resultsContainer">
+    <div class="results-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:90px;">Ориг. ID</th>
+            <th style="width:26%;">Оригинальное название</th>
+            <th>Сгенерированные дубли (полностью редактируемые)</th>
+          </tr>
+        </thead>
+        <tbody id="resultBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="app-footer">
+    Фид-Мастер 2.5 · Работает полностью в браузере, без отправки данных на сервер
+  </div>
+</div>
+
+<script>
+/* ============================================================================
+   ИНИЦИАЛИЗАЦИЯ ТЕМЫ
+   Ставим тему ДО загрузки DOM, чтобы избежать вспышки.
+   ============================================================================ */
+(function initThemeEarly() {
+    try {
+        const savedTheme = localStorage.getItem('feedMaster.theme');
+        let theme = savedTheme;
+        if (!theme) {
+            theme = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches)
+                    ? 'dark' : 'light';
+        }
+        document.documentElement.setAttribute('data-theme', theme);
+    } catch (err) { /* localStorage может быть недоступен */ }
+})();
+
+/** Применить тему и сохранить выбор */
+function applyTheme(theme) {
+    document.documentElement.setAttribute('data-theme', theme);
+    try { localStorage.setItem('feedMaster.theme', theme); } catch (err) {}
+    const btn = document.getElementById('themeToggle');
+    if (btn) btn.textContent = (theme === 'dark') ? '☀️' : '🌙';
+}
+
+/** Переключить тему */
+function toggleTheme() {
+    const current = document.documentElement.getAttribute('data-theme') === 'dark'
+                    ? 'dark' : 'light';
+    applyTheme(current === 'dark' ? 'light' : 'dark');
+}
+
+/* ============================================================================
+   ГЛОБАЛЬНОЕ СОСТОЯНИЕ
+   ============================================================================ */
+let originalXmlContent = "";              // Исходный XML (строка)
+let generatedOffers = [];                 // Массив объектов: {originalId, originalBlock, originalName, variants}
+let MAX_LEN = 56;                         // Лимит символов заголовка
+let USE_MORPH = true;                     // Включено ли умное склонение
+
+let feedCategories = [];                  // Массив {name, count} из <param name="Категория">
+let selectedCategories = new Set();       // Выбранные категории (lowercase)
+let currentSearchMode = 'manual';         // 'manual' | 'list'
+let msSearchQuery = '';                   // Строка фильтра в мультиселекте
+
+/* ============================================================================
+   НЕЙРО-СЛОВАРЬ (40+ категорий спорт-фида)
+   Ключ — корень товарной категории в нижнем регистре.
+   Матчинг: сначала длинные ключи, потом короткие. "беговая дорожка" сработает
+   раньше чем просто "дорожка".
+   ============================================================================ */
+const smartLogic = {
+
+    // === КАРДИО-ТРЕНАЖЁРЫ ===
+    "беговая дорожка": { pre: ["Купить", "Заказать", "Профессиональная", "Электрическая"],
+                         suf: ["для дома", "с амортизацией", "с доставкой", "складная"] },
+
+    "дорожка":         { pre: ["Купить", "Заказать", "Электрическая", "Складная"],
+                         suf: ["для дома", "с доставкой", "для бега", "для похудения"] },
+
+    "эллипсоид":       { pre: ["Купить", "Заказать", "Магнитный", "Профессиональный"],
+                         suf: ["для дома", "с доставкой", "с электропитанием", "компактный"] },
+
+    "эллиптический":   { pre: ["Купить", "Заказать", "Магнитный", "Складной"],
+                         suf: ["для дома", "тренажер", "с доставкой", "компактный"] },
+
+    "орбитрек":        { pre: ["Купить", "Заказать", "Магнитный", "Электромагнитный"],
+                         suf: ["для дома", "с доставкой", "с нагрузкой", "компактный"] },
+
+    "велотренажер":    { pre: ["Купить", "Заказать", "Горизонтальный", "Вертикальный"],
+                         suf: ["для дома", "с доставкой", "магнитный", "складной"] },
+
+    "велоэргометр":    { pre: ["Купить", "Заказать", "Профессиональный", "Медицинский"],
+                         suf: ["с программами", "с пульсометром", "для реабилитации", "для дома"] },
+
+    "гребн":           { pre: ["Купить", "Заказать", "Водный", "Магнитный"],
+                         suf: ["гребной тренажер", "для дома", "для спины", "профессиональный"] },
+
+    "спин-байк":       { pre: ["Купить", "Заказать", "Сайкл-тренажер", "Кардиотренажер"],
+                         suf: ["для дома", "профессиональный", "с доставкой", "для кардио"] },
+
+    "спинбайк":        { pre: ["Купить", "Заказать", "Сайкл-тренажер", "Кардиотренажер"],
+                         suf: ["для дома", "профессиональный", "с доставкой", "для кардио"] },
+
+    "степпер":         { pre: ["Купить", "Заказать", "Балансировочный", "Поворотный"],
+                         suf: ["для дома", "с эспандерами", "мини", "компактный"] },
+
+    "райдер":          { pre: ["Купить", "Заказать", "Кардио-", "Тренировочный"],
+                         suf: ["для дома", "для всего тела", "с доставкой", "функциональный"] },
+
+    // === СИЛОВЫЕ ТРЕНАЖЁРЫ ===
+    "смит":            { pre: ["Купить", "Заказать", "Машина Смита", "Силовой тренажер"],
+                         suf: ["с противовесом", "для зала", "профессиональный", "для дома"] },
+
+    "кроссовер":       { pre: ["Купить", "Заказать", "Блочный", "Угловой"],
+                         suf: ["для дома и зала", "с противовесами", "профессиональный", "для всех групп мышц"] },
+
+    "гакк":            { pre: ["Купить", "Заказать", "Гак-машина", "Силовой"],
+                         suf: ["для ног", "тренажер для приседа", "профессиональный", "с плитой"] },
+
+    "грузоблочн":      { pre: ["Купить", "Заказать", "Грузоблочный", "Блочный"],
+                         suf: ["для фитнес-клуба", "стековый", "профессиональный", "для зала"] },
+
+    "свободн":         { pre: ["Купить", "Заказать", "Тренажер", "Силовое оборудование"],
+                         suf: ["на свободных весах", "для зала", "профессиональный", "с нагрузкой"] },
+
+    "хаммер":          { pre: ["Купить", "Заказать", "Рычажный", "Силовой"],
+                         suf: ["тренажер", "для зала", "профессиональный", "с нагрузкой"] },
+
+    "жим":             { pre: ["Купить", "Заказать", "Силовой", "Рычажный"],
+                         suf: ["тренажер", "для груди", "для плеч", "для зала"] },
+
+    "тяга":            { pre: ["Купить", "Заказать", "Блочная", "Вертикальная"],
+                         suf: ["тренажер", "для спины", "верхняя", "нижняя"] },
+
+    "стойка":          { pre: ["Купить", "Заказать", "Силовая", "Тренировочная"],
+                         suf: ["для штанги", "для приседа", "для дома", "профессиональная"] },
+
+    "силовая рам":     { pre: ["Купить", "Заказать", "Силовая", "Тренировочная"],
+                         suf: ["рама", "для штанги", "для дома", "для зала"] },
+
+    "мультистанц":     { pre: ["Купить", "Заказать", "Универсальная", "Многофункциональная"],
+                         suf: ["мультистанция", "для дома", "для зала", "с нагрузкой"] },
+
+    "пресс":           { pre: ["Купить", "Заказать", "Скамья для пресса", "Тренажер"],
+                         suf: ["для дома", "с регулировкой", "для пресса", "складной"] },
+
+    // === СНАРЯДЫ: СВОБОДНЫЕ ВЕСА ===
+    "штанга":          { pre: ["Купить", "Заказать", "Олимпийская", "Тренировочная"],
+                         suf: ["с грифом", "хромированная", "для дома", "профессиональная"] },
+
+    "гриф":            { pre: ["Купить", "Заказать", "Олимпийский", "Изогнутый"],
+                         suf: ["хромированный", "для штанги", "W-образный", "профессиональный"] },
+
+    "гантел":          { pre: ["Купить", "Заказать", "Разборные", "Обрезиненные"],
+                         suf: ["для дома", "хромированные", "набор", "профессиональные"] },
+
+    "гиря":            { pre: ["Купить", "Заказать", "Спортивная", "Чугунная"],
+                         suf: ["для кроссфита", "для дома", "профессиональная", "с покрытием"] },
+
+    "блин":            { pre: ["Купить", "Заказать", "Олимпийский", "Обрезиненный"],
+                         suf: ["диск", "для штанги", "с хватом", "хромированный"] },
+
+    "диск":            { pre: ["Купить", "Заказать", "Олимпийский", "Обрезиненный"],
+                         suf: ["для штанги", "блин", "с хватом", "с замком"] },
+
+    "бодибар":         { pre: ["Купить", "Заказать", "Тренировочный", "Аэробный"],
+                         suf: ["для фитнеса", "утяжеленный", "с покрытием", "для тренировок"] },
+
+    "медбол":          { pre: ["Купить", "Заказать", "Медицинский", "Набивной"],
+                         suf: ["мяч", "с ручками", "для кроссфита", "утяжеленный"] },
+
+    "сэндбэг":         { pre: ["Купить", "Заказать", "Тренировочный", "Функциональный"],
+                         suf: ["мешок", "с ручками", "для кроссфита", "с наполнителем"] },
+
+    // === СКАМЬИ И АКСЕССУАРЫ ===
+    "скамья":          { pre: ["Купить", "Заказать", "Регулируемая", "Универсальная"],
+                         suf: ["для жима", "для пресса", "для дома", "профессиональная"] },
+
+    "скамейка":        { pre: ["Купить", "Заказать", "Тренировочная", "Регулируемая"],
+                         suf: ["для жима", "для пресса", "для дома", "складная"] },
+
+    "турник":          { pre: ["Купить", "Заказать", "Настенный", "Распорный"],
+                         suf: ["для дома", "в дверной проем", "с 3 хватами", "профессиональный"] },
+
+    "брусья":          { pre: ["Купить", "Заказать", "Навесные", "Настенные"],
+                         suf: ["для дома", "для отжиманий", "складные", "универсальные"] },
+
+    "шведск":          { pre: ["Купить", "Заказать", "Деревянная", "Металлическая"],
+                         suf: ["шведская стенка", "для дома", "с турником", "для детей"] },
+
+    "фитбол":          { pre: ["Купить", "Заказать", "Гимнастический", "Антивзрыв"],
+                         suf: ["мяч", "с насосом", "для фитнеса", "для беременных"] },
+
+    "эспандер":        { pre: ["Купить", "Заказать", "Резиновый", "Силовой"],
+                         suf: ["для рук", "кистевой", "грудной", "тренировочный"] },
+
+    "степ-платформ":   { pre: ["Купить", "Заказать", "Аэробная", "Регулируемая"],
+                         suf: ["степ-платформа", "для фитнеса", "нескользящая", "с уровнями"] },
+
+    "балансировочн":   { pre: ["Купить", "Заказать", "BOSU", "Полусфера"],
+                         suf: ["для баланса", "для тренировок", "с насосом", "тренировочная"] },
+
+    // === ЕДИНОБОРСТВА ===
+    "боксёрск":        { pre: ["Купить", "Заказать", "Боксерская", "Профессиональная"],
+                         suf: ["для бокса", "для тренировок", "кожаная", "с доставкой"] },
+
+    "боксерск":        { pre: ["Купить", "Заказать", "Боксерская", "Профессиональная"],
+                         suf: ["для бокса", "для тренировок", "кожаная", "с доставкой"] },
+
+    "груша":           { pre: ["Купить", "Заказать", "Боксерская", "Подвесная"],
+                         suf: ["для бокса", "кожаная", "набивная", "для дома"] },
+
+    "мешок":           { pre: ["Купить", "Заказать", "Боксерский", "Подвесной"],
+                         suf: ["для бокса", "кожаный", "набивной", "профессиональный"] },
+
+    "перчатки":        { pre: ["Купить", "Заказать", "Боксерские", "Тренировочные"],
+                         suf: ["для бокса", "кожаные", "снарядные", "профессиональные"] },
+
+    "лапы":            { pre: ["Купить", "Заказать", "Боксерские", "Тренерские"],
+                         suf: ["для бокса", "кожаные", "изогнутые", "профессиональные"] },
+
+    "шлем":            { pre: ["Купить", "Заказать", "Боксерский", "Тренировочный"],
+                         suf: ["для бокса", "защитный", "кожаный", "профессиональный"] },
+
+    "бинт":            { pre: ["Купить", "Заказать", "Боксерские", "Эластичные"],
+                         suf: ["бинты", "для рук", "на запястья", "тренировочные"] },
+
+    // === ВОССТАНОВЛЕНИЕ, ЙОГА ===
+    "массаж":          { pre: ["Купить", "Заказать", "Массажный", "Спортивный"],
+                         suf: ["ролик", "для МФР", "для спины", "для ног"] },
+
+    "ролл":            { pre: ["Купить", "Заказать", "Массажный", "Фоам-"],
+                         suf: ["роллер", "для МФР", "для мышц", "рифленый"] },
+
+    "коврик":          { pre: ["Купить", "Заказать", "Для йоги", "Спортивный"],
+                         suf: ["коврик", "нескользящий", "противоскользящий", "для фитнеса"] },
+
+    "йога-":           { pre: ["Купить", "Заказать", "Для йоги", "Профессиональный"],
+                         suf: ["для йоги", "с разметкой", "нескользящий", "натуральный"] },
+
+    // === ИГРОВЫЕ СТОЛЫ ===
+    "теннисный стол":  { pre: ["Купить", "Заказать", "Всепогодный", "Профессиональный"],
+                         suf: ["для дома", "для улицы", "складной", "с сеткой"] },
+
+    "настольный теннис": { pre: ["Купить", "Заказать", "Профессиональный", "Всепогодный"],
+                           suf: ["для дома", "для улицы", "складной", "с сеткой"] },
+
+    "бильярд":         { pre: ["Купить", "Заказать", "Бильярдный", "Профессиональный"],
+                         suf: ["стол", "для дома", "с аксессуарами", "классический"] },
+
+    "дартс":           { pre: ["Купить", "Заказать", "Профессиональный", "Электронный"],
+                         suf: ["мишень", "для дома", "с дротиками", "классический"] },
+
+    "аэрохоккей":      { pre: ["Купить", "Заказать", "Игровой", "Семейный"],
+                         suf: ["стол", "для дома", "с доставкой", "с аксессуарами"] },
+
+    "кикер":           { pre: ["Купить", "Заказать", "Футбольный", "Игровой"],
+                         suf: ["стол", "для дома", "с доставкой", "с аксессуарами"] },
+
+    // === АКТИВНОСТИ ===
+    "велосипед":       { pre: ["Купить", "Заказать", "Горный", "Городской"],
+                         suf: ["для взрослых", "для детей", "с доставкой", "в наличии"] },
+
+    "самокат":         { pre: ["Купить", "Заказать", "Городской", "Детский"],
+                         suf: ["для взрослых", "для детей", "складной", "с амортизацией"] },
+
+    "ролики":          { pre: ["Купить", "Заказать", "Роликовые", "Раздвижные"],
+                         suf: ["коньки", "для детей", "для взрослых", "профессиональные"] },
+
+    "скейтборд":       { pre: ["Купить", "Заказать", "Классический", "Профессиональный"],
+                         suf: ["для дома", "для трюков", "с доставкой", "в наличии"] },
+
+    "батут":           { pre: ["Купить", "Заказать", "Уличный", "Детский"],
+                         suf: ["с сеткой", "для дачи", "для детей", "с лестницей"] },
+
+    // === ДЕТСКОЕ И СПОРТГОРОДКИ ===
+    "детск":           { pre: ["Купить", "Заказать", "Детский", "Развивающий"],
+                         suf: ["для детей", "спорткомплекс", "с доставкой", "безопасный"] },
+
+    "спорткомплекс":   { pre: ["Купить", "Заказать", "Детский", "Домашний"],
+                         suf: ["для дома", "универсальный", "с горкой", "с кольцами"] },
+
+    "горка":           { pre: ["Купить", "Заказать", "Детская", "Игровая"],
+                         suf: ["для дома", "для дачи", "пластиковая", "с доставкой"] },
+
+    "качел":           { pre: ["Купить", "Заказать", "Детские", "Садовые"],
+                         suf: ["качели", "для дачи", "для дома", "с креплением"] },
+
+    // === FALLBACK для всего, что не опознали ===
+    "default":         { pre: ["Купить", "Заказать", "Профессиональный", "Фитнес"],
+                         suf: ["для дома", "с доставкой", "в наличии", "по выгодной цене"] }
+};
+
+/* ============================================================================
+   МОРФОЛОГИЧЕСКИЙ МОДУЛЬ
+   Ставит русское существительное + согласующиеся прилагательные
+   в винительный падеж. Английские слова и модели не трогает.
+   ============================================================================ */
+const Morph = (function() {
+
+    /**
+     * Словарь исключений — слова, где типовое правило не работает
+     * или где хочется гарантированно верную форму.
+     * g — род: 'm' (муж.) / 'f' (жен.) / 'n' (ср.) / 'p' (мн.ч.)
+     * acc — форма винительного падежа
+     */
+    const exceptions = {
+        // Женский род
+        'дорожка':     { g: 'f', acc: 'дорожку' },
+        'дорога':      { g: 'f', acc: 'дорогу' },
+        'штанга':      { g: 'f', acc: 'штангу' },
+        'гантель':     { g: 'f', acc: 'гантель' },
+        'скамья':      { g: 'f', acc: 'скамью' },
+        'скамейка':    { g: 'f', acc: 'скамейку' },
+        'стойка':      { g: 'f', acc: 'стойку' },
+        'машина':      { g: 'f', acc: 'машину' },
+        'сковорода':   { g: 'f', acc: 'сковороду' },
+        'мышь':        { g: 'f', acc: 'мышь' },
+        'сумка':       { g: 'f', acc: 'сумку' },
+        'груша':       { g: 'f', acc: 'грушу' },
+        'лавка':       { g: 'f', acc: 'лавку' },
+        'тумба':       { g: 'f', acc: 'тумбу' },
+        'рама':        { g: 'f', acc: 'раму' },
+        'доска':       { g: 'f', acc: 'доску' },
+        'платформа':   { g: 'f', acc: 'платформу' },
+        'педаль':      { g: 'f', acc: 'педаль' },
+        'рукоятка':    { g: 'f', acc: 'рукоятку' },
+        'перекладина': { g: 'f', acc: 'перекладину' },
+        'петля':       { g: 'f', acc: 'петлю' },
+        'цепь':        { g: 'f', acc: 'цепь' },
+        'гиря':        { g: 'f', acc: 'гирю' },
+        'сетка':       { g: 'f', acc: 'сетку' },
+        'ракетка':     { g: 'f', acc: 'ракетку' },
+        'клюшка':      { g: 'f', acc: 'клюшку' },
+        'шайба':       { g: 'f', acc: 'шайбу' },
+        'скакалка':    { g: 'f', acc: 'скакалку' },
+        'страховка':   { g: 'f', acc: 'страховку' },
+        'лента':       { g: 'f', acc: 'ленту' },
+        'майка':       { g: 'f', acc: 'майку' },
+        'форма':       { g: 'f', acc: 'форму' },
+        'лапа':        { g: 'f', acc: 'лапу' },
+        'палка':       { g: 'f', acc: 'палку' },
+        'станция':     { g: 'f', acc: 'станцию' },
+        'экипировка':  { g: 'f', acc: 'экипировку' },
+        'горка':       { g: 'f', acc: 'горку' },
+        'мишень':      { g: 'f', acc: 'мишень' },
+        'стенка':      { g: 'f', acc: 'стенку' },
+        'полусфера':   { g: 'f', acc: 'полусферу' },
+        'резинка':     { g: 'f', acc: 'резинку' },
+
+        // Мужской род (для неодушевлённых винительный = именительный)
+        'велосипед':   { g: 'm', acc: 'велосипед' },
+        'тренажер':    { g: 'm', acc: 'тренажер' },
+        'тренажёр':    { g: 'm', acc: 'тренажёр' },
+        'турник':      { g: 'm', acc: 'турник' },
+        'мешок':       { g: 'm', acc: 'мешок' },
+        'мяч':         { g: 'm', acc: 'мяч' },
+        'бинт':        { g: 'm', acc: 'бинт' },
+        'шлем':        { g: 'm', acc: 'шлем' },
+        'батут':       { g: 'm', acc: 'батут' },
+        'самокат':     { g: 'm', acc: 'самокат' },
+        'скейтборд':   { g: 'm', acc: 'скейтборд' },
+        'стол':        { g: 'm', acc: 'стол' },
+        'коврик':      { g: 'm', acc: 'коврик' },
+        'эспандер':    { g: 'm', acc: 'эспандер' },
+        'ролик':       { g: 'm', acc: 'ролик' },
+        'роллер':      { g: 'm', acc: 'роллер' },
+        'медбол':      { g: 'm', acc: 'медбол' },
+        'бодибар':     { g: 'm', acc: 'бодибар' },
+        'сэндбэг':     { g: 'm', acc: 'сэндбэг' },
+        'гриф':        { g: 'm', acc: 'гриф' },
+        'блин':        { g: 'm', acc: 'блин' },
+        'диск':        { g: 'm', acc: 'диск' },
+        'степпер':     { g: 'm', acc: 'степпер' },
+        'райдер':      { g: 'm', acc: 'райдер' },
+        'эллипсоид':   { g: 'm', acc: 'эллипсоид' },
+        'орбитрек':    { g: 'm', acc: 'орбитрек' },
+        'велоэргометр':{ g: 'm', acc: 'велоэргометр' },
+        'велотренажер':{ g: 'm', acc: 'велотренажер' },
+        'фитбол':      { g: 'm', acc: 'фитбол' },
+        'хаммер':      { g: 'm', acc: 'хаммер' },
+        'пояс':        { g: 'm', acc: 'пояс' },
+        'ринг':        { g: 'm', acc: 'ринг' },
+        'канат':       { g: 'm', acc: 'канат' },
+        'комплекс':    { g: 'm', acc: 'комплекс' },
+        'климбер':     { g: 'm', acc: 'климбер' },
+        'манекен':     { g: 'm', acc: 'манекен' },
+
+        // Средний род (винительный = именительный)
+        'время':       { g: 'n', acc: 'время' },
+        'оборудование':{ g: 'n', acc: 'оборудование' },
+        'покрытие':    { g: 'n', acc: 'покрытие' },
+        'кольцо':      { g: 'n', acc: 'кольцо' },
+
+        // Множественное число (винительный = именительный для неодуш.)
+        'перчатки':    { g: 'p', acc: 'перчатки' },
+        'лапы':        { g: 'p', acc: 'лапы' },
+        'бинты':       { g: 'p', acc: 'бинты' },
+        'брусья':      { g: 'p', acc: 'брусья' },
+        'кольца':      { g: 'p', acc: 'кольца' }
+    };
+
+    const RE_CYRILLIC   = /^[а-яёА-ЯЁ-]+$/;
+    const RE_ADJ        = /(ый|ий|ой|ая|яя|ое|ее|ые|ие)$/i;
+    const RE_SPLIT_WS   = /(\s+)/;
+
+    /** Определить род слова */
+    function detectGender(word) {
+        const lower = word.toLowerCase();
+        if (exceptions[lower]) return exceptions[lower].g;
+
+        if (/(ость|есть)$/.test(lower))              return 'f';
+        if (/(ие|ье|мя)$/.test(lower))               return 'n';
+        if (/(о|е)$/.test(lower) && lower.length > 2) return 'n';
+        if (/(а|я)$/.test(lower))                    return 'f';
+
+        // Слова на -ь: различаем м.р. и ж.р. по типичным суффиксам
+        if (/ь$/.test(lower)) {
+            return /(арь|ырь|тель|атель|итель|ень|ель)$/.test(lower) ? 'm' : 'f';
+        }
+        return 'm';
+    }
+
+    /** Сохранить регистр первой буквы из оригинала */
+    function preserveCase(original, result) {
+        if (!original || !result) return result;
+        const firstChar = original[0];
+        if (firstChar === firstChar.toUpperCase() &&
+            firstChar !== firstChar.toLowerCase()) {
+            return result[0].toUpperCase() + result.slice(1);
+        }
+        return result;
+    }
+
+    /** Существительное из им.п. → вин.п. (для неодушевлённых) */
+    function nounToAccusative(word) {
+        const lower = word.toLowerCase();
+        if (exceptions[lower]) return preserveCase(word, exceptions[lower].acc);
+
+        const gender = detectGender(word);
+        if (gender === 'f') {
+            if (/а$/i.test(word)) return word.slice(0, -1) + 'у';
+            if (/я$/i.test(word)) return word.slice(0, -1) + 'ю';
+        }
+        // м.р. и с.р. неодушевлённые: вин.п. = им.п.
+        return word;
+    }
+
+    /** Прилагательное из им.п. → вин.п. (согласуется с родом существительного) */
+    function adjToAccusative(word, gender) {
+        if (gender === 'f') {
+            if (/ая$/i.test(word)) return word.slice(0, -2) + 'ую';
+            if (/яя$/i.test(word)) return word.slice(0, -2) + 'юю';
+        }
+        // м.р. и с.р. неодуш. — вин.п. = им.п.
+        return word;
+    }
+
+    /**
+     * Главная функция: ставит первое найденное русское существительное
+     * в винительный падеж, + все согласующиеся прилагательные слева от него.
+     * Англ. слова, цифры, артикулы (Carbon T606) не трогаются.
+     */
+    function inflectToAccusative(phrase) {
+        if (!phrase) return phrase;
+
+        const tokens = phrase.split(RE_SPLIT_WS); // сохраняем пробелы
+        let nounIndex = -1;
+
+        // Находим первое существительное (русское слово, не прилагательное, длиной > 2)
+        for (let i = 0; i < tokens.length; i++) {
+            const token = tokens[i];
+            if (!token.trim()) continue;
+            if (RE_CYRILLIC.test(token) && !RE_ADJ.test(token) && token.length > 2) {
+                nounIndex = i;
+                break;
+            }
+        }
+        if (nounIndex === -1) return phrase;
+
+        const noun = tokens[nounIndex];
+        const gender = detectGender(noun);
+
+        // Склоняем существительное
+        tokens[nounIndex] = preserveCase(noun, nounToAccusative(noun));
+
+        // Склоняем все прилагательные СЛЕВА от существительного
+        for (let j = nounIndex - 1; j >= 0; j--) {
+            const token = tokens[j];
+            if (!token.trim()) continue; // пробел
+            if (RE_CYRILLIC.test(token) && RE_ADJ.test(token)) {
+                tokens[j] = preserveCase(token, adjToAccusative(token, gender));
+            } else {
+                break; // цепочка прилагательных прервалась
+            }
+        }
+
+        return tokens.join('');
+    }
+
+    return { inflectToAccusative };
+})();
+
+/* ============================================================================
+   СБОРКА ВАРИАНТА ЗАГОЛОВКА
+   ============================================================================ */
+
+/** Глаголы-триггеры винительного падежа */
+const ACCUSATIVE_TRIGGERS = new Set([
+    'купить', 'заказать', 'приобрести', 'выбрать', 'взять'
+]);
+
+/** Приставка начинается с глагола-триггера? */
+function needsAccusativeAfter(prefix) {
+    if (!prefix) return false;
+    const firstWord = prefix.trim().split(/\s+/)[0].toLowerCase();
+    return ACCUSATIVE_TRIGGERS.has(firstWord);
+}
+
+/**
+ * Собрать финальное название варианта.
+ * @param {string} prefix   — приставка ("Купить", "Профессиональный", "")
+ * @param {string} baseName — ядро товара (оригинальное или с заменой)
+ * @param {string} suffix   — суффикс ("для дома", "с доставкой", "")
+ */
+function buildVariantName(prefix, baseName, suffix) {
+    if (!baseName) return '';
+
+    let body = baseName;
+
+    // Применяем склонение только если:
+    // 1) Склонение включено в настройках
+    // 2) Приставка — это глагол ("Купить", "Заказать"...)
+    if (USE_MORPH && needsAccusativeAfter(prefix)) {
+        body = Morph.inflectToAccusative(body);
+    }
+
+    // Опускаем регистр первой буквы ядра, если оно стоит после приставки
+    // и не является аббревиатурой (DFC, PRO и т.п.)
+    if (prefix) {
+        const firstWord = body.split(' ')[0] || '';
+        const isAbbreviation = firstWord.length > 0 &&
+                               firstWord === firstWord.toUpperCase() &&
+                               /[А-ЯA-Z]/.test(firstWord);
+        if (!isAbbreviation) {
+            body = body.charAt(0).toLowerCase() + body.slice(1);
+        }
+    }
+
+    // Собираем финальную строку
+    let result;
+    if      (prefix && suffix) result = `${prefix} ${body} ${suffix}`;
+    else if (prefix)           result = `${prefix} ${body}`;
+    else if (suffix)           result = `${body} ${suffix}`;
+    else                       result = body;
+
+    // Нормализуем пробелы + заглавная первая буква
+    result = result.replace(/\s+/g, ' ').trim();
+    if (result.length) {
+        result = result.charAt(0).toUpperCase() + result.slice(1);
+    }
+    return result;
+}
+
+/* ============================================================================
+   УТИЛИТЫ
+   ============================================================================ */
+
+function escapeRegExp(str) {
+    return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function escapeXml(str) {
+    return str.replace(/[<>&'"]/g, function(c) {
+        return { '<':'&lt;', '>':'&gt;', '&':'&amp;', "'":'&apos;', '"':'&quot;' }[c];
+    });
+}
+
+function escapeAttr(str) {
+    return String(str).replace(/[&<>"']/g, function(c) {
+        return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c];
+    });
+}
+
+function escapeHtml(str) {
+    return escapeAttr(str);
+}
+
+function decodeXmlEntities(str) {
+    return str
+        .replace(/&lt;/g,   '<')
+        .replace(/&gt;/g,   '>')
+        .replace(/&quot;/g, '"')
+        .replace(/&apos;/g, "'")
+        .replace(/&amp;/g,  '&');
+}
+
+function showStatus(kind, message) {
+    const el = document.getElementById('status');
+    el.className = 'alert alert-' + kind;
+    el.innerHTML = message;
+}
+
+/* ============================================================================
+   ВЫБОР СЛОВАРНОЙ ЗАПИСИ ПО НАЗВАНИЮ ТОВАРА
+   Длинные ключи приоритетнее коротких: "беговая дорожка" сработает
+   раньше чем просто "дорожка".
+   ============================================================================ */
+function pickDictionaryEntry(productName, matchedKeyword) {
+    const nameLower = productName.toLowerCase();
+    const allKeys = Object.keys(smartLogic)
+                          .filter(k => k !== 'default')
+                          .sort((a, b) => b.length - a.length);
+
+    // 1) Ищем ключ в самом названии товара
+    for (const key of allKeys) {
+        if (nameLower.indexOf(key) !== -1) {
+            return smartLogic[key];
+        }
+    }
+
+    // 2) Ищем ключ в matched keyword (что пользователь искал)
+    if (matchedKeyword) {
+        const keywordLower = matchedKeyword.toLowerCase();
+        for (const key of allKeys) {
+            if (keywordLower.indexOf(key) !== -1) {
+                return smartLogic[key];
+            }
+        }
+    }
+
+    // 3) Fallback: универсальный словарь
+    return smartLogic["default"];
+}
+
+/* ============================================================================
+   ПАРСИНГ КАТЕГОРИЙ ИЗ XML
+   ============================================================================ */
+function extractCategoriesFromXml(xml) {
+    const counts = new Map();
+    const regex = /<param\s+name=["']Категория["'][^>]*>([\s\S]*?)<\/param>/gi;
+    let match;
+
+    while ((match = regex.exec(xml)) !== null) {
+        const raw = match[1].replace(/\s+/g, ' ').trim();
+        if (!raw) continue;
+        const clean = decodeXmlEntities(raw);
+        counts.set(clean, (counts.get(clean) || 0) + 1);
+    }
+
+    const categories = Array.from(counts, ([name, count]) => ({ name, count }));
+    categories.sort((a, b) => a.name.localeCompare(b.name, 'ru'));
+    return categories;
+}
+
+/* ============================================================================
+   РЕНДЕР МУЛЬТИСЕЛЕКТА КАТЕГОРИЙ
+   ============================================================================ */
+function renderCategoryList() {
+    const list = document.getElementById('msList');
+
+    if (feedCategories.length === 0) {
+        list.innerHTML = '<div class="ms-empty">Загрузите XML-файл — здесь появятся категории из фида</div>';
+        updateMsCounter();
+        return;
+    }
+
+    const query = msSearchQuery.toLowerCase().trim();
+    const filtered = query
+        ? feedCategories.filter(c => c.name.toLowerCase().indexOf(query) !== -1)
+        : feedCategories;
+
+    if (filtered.length === 0) {
+        list.innerHTML = '<div class="ms-empty">Ничего не найдено</div>';
+        updateMsCounter();
+        return;
+    }
+
+    const htmlParts = new Array(filtered.length);
+    for (let i = 0; i < filtered.length; i++) {
+        const category = filtered[i];
+        const isChecked = selectedCategories.has(category.name.toLowerCase());
+        htmlParts[i] =
+            '<label class="ms-item' + (isChecked ? ' checked' : '') +
+                    '" data-cat="' + escapeAttr(category.name) + '">' +
+                '<input type="checkbox"' + (isChecked ? ' checked' : '') + '>' +
+                '<span class="ms-item-label">' + escapeHtml(category.name) + '</span>' +
+                '<span class="ms-item-count">' + category.count + '</span>' +
+            '</label>';
+    }
+    list.innerHTML = htmlParts.join('');
+    updateMsCounter();
+}
+
+function renderChips() {
+    const chips = document.getElementById('msChips');
+    if (selectedCategories.size === 0) {
+        chips.innerHTML = '';
+        return;
+    }
+
+    const selectedArray = Array.from(selectedCategories);
+    const htmlParts = new Array(selectedArray.length);
+
+    for (let i = 0; i < selectedArray.length; i++) {
+        const keyLower = selectedArray[i];
+        const originalCat = feedCategories.find(c => c.name.toLowerCase() === keyLower);
+        const displayName = originalCat ? originalCat.name : keyLower;
+
+        htmlParts[i] =
+            '<span class="chip">' +
+                escapeHtml(displayName) +
+                '<span class="chip-x" data-remove="' + escapeAttr(keyLower) +
+                      '" title="Убрать">×</span>' +
+            '</span>';
+    }
+    chips.innerHTML = htmlParts.join('');
+}
+
+function updateMsCounter() {
+    document.getElementById('msCounter').innerHTML =
+        '<strong>' + selectedCategories.size + '</strong> из ' + feedCategories.length;
+}
+
+function toggleCategory(name) {
+    const key = name.toLowerCase();
+    if (selectedCategories.has(key)) {
+        selectedCategories.delete(key);
+    } else {
+        selectedCategories.add(key);
+    }
+    renderCategoryList();
+    renderChips();
+}
+
+/* ============================================================================
+   ГЛАВНЫЙ ПРОЦЕСС ОБРАБОТКИ ФИДА
+   ============================================================================ */
+function processFile() {
+    // Считываем все поля формы
+    const rawKeywords     = document.getElementById('keywordInput').value.toLowerCase();
+    const userPrefixes    = document.getElementById('prefixesInput').value
+                                    .split(',').map(s => s.trim()).filter(Boolean);
+    const userSuffixes    = document.getElementById('suffixesInput').value
+                                    .split(',').map(s => s.trim()).filter(Boolean);
+    const wordToReplace   = document.getElementById('wordToReplace').value.trim();
+    const replacementWord = document.getElementById('replacementWord').value.trim();
+    const replaceCount    = parseInt(document.getElementById('replaceCount').value, 10) || 0;
+
+    const resultsContainer = document.getElementById('resultsContainer');
+    const resultBody       = document.getElementById('resultBody');
+    const exportPanel      = document.getElementById('exportPanel');
+    const searchTargetEl   = document.querySelector('input[name="searchTarget"]:checked');
+
+    USE_MORPH = document.getElementById('useMorph').checked;
+
+    // Валидация
+    if (!originalXmlContent) {
+        return showStatus('error', '❌ <strong>Ошибка:</strong> сначала загрузите файл XML!');
+    }
+    if (!searchTargetEl) {
+        return showStatus('error', '❌ <strong>Ошибка:</strong> выберите, где искать!');
+    }
+    const searchTarget = searchTargetEl.value;
+
+    // Определяем список ключевых слов и режим сопоставления
+    let keywords = [];
+    let matchMode = 'contains';
+
+    if (searchTarget === 'category' &&
+        currentSearchMode === 'list' &&
+        selectedCategories.size > 0) {
+        // Точное сравнение по выбранным категориям
+        keywords = Array.from(selectedCategories);
+        matchMode = 'exact';
+    } else {
+        keywords = rawKeywords.split(',').map(k => k.trim()).filter(k => k.length > 0);
+    }
+
+    if (keywords.length === 0) {
+        return showStatus('error',
+            '❌ <strong>Ошибка:</strong> не указано, что искать. ' +
+            'Введите слова или выберите категории из списка.');
+    }
+
+    showStatus('info', '⏳ Ищу совпадения и строю варианты...');
+    resultBody.innerHTML = '';
+    resultsContainer.classList.remove('visible');
+    exportPanel.classList.remove('visible');
+
+    // Запускаем тяжёлую работу асинхронно, чтобы UI успел обновиться
+    setTimeout(function() {
+        runGeneration({
+            keywords: keywords,
+            searchTarget: searchTarget,
+            matchMode: matchMode,
+            userPrefixes: userPrefixes,
+            userSuffixes: userSuffixes,
+            wordToReplace: wordToReplace,
+            replacementWord: replacementWord,
+            replaceCount: replaceCount
+        });
+    }, 20);
+}
+
+/* ============================================================================
+   ОСНОВНАЯ ЛОГИКА: парсинг офферов, генерация вариантов, рендер таблицы
+   ============================================================================ */
+function runGeneration(options) {
+    const keywords        = options.keywords;
+    const searchTarget    = options.searchTarget;
+    const matchMode       = options.matchMode;
+    const userPrefixes    = options.userPrefixes;
+    const userSuffixes    = options.userSuffixes;
+    const wordToReplace   = options.wordToReplace;
+    const replacementWord = options.replacementWord;
+    const replaceCount    = options.replaceCount;
+
+    try {
+        // Разбиваем XML на "блоки оффера" (оригинальный подход)
+        const offerChunks = originalXmlContent.split('<offer ');
+        generatedOffers = [];
+
+        // Прекомпилированные регулярки (один раз, не внутри цикла)
+        const reName = /<name>([\s\S]*?)<\/name>/i;
+        const reCat  = /<param\s+name=["']Категория["'][^>]*>([\s\S]*?)<\/param>/i;
+        const reId   = /id=["']([^"']+)["']/i;
+
+        const reSynonym = (wordToReplace && replacementWord)
+            ? new RegExp(escapeRegExp(wordToReplace), 'ig')
+            : null;
+
+        const repIsAllUpper = replacementWord &&
+                              replacementWord === replacementWord.toUpperCase() &&
+                              /[А-ЯA-Z]/.test(replacementWord);
+        const repLowerStart = replacementWord
+            ? replacementWord.charAt(0).toLowerCase() + replacementWord.slice(1)
+            : '';
+        const repUpperStart = replacementWord
+            ? replacementWord.charAt(0).toUpperCase() + replacementWord.slice(1)
+            : '';
+
+        /** Замена слова с сохранением регистра */
+        function applySynonym(str) {
+            if (!reSynonym) return str;
+            return str.replace(reSynonym, function(match) {
+                if (repIsAllUpper) return replacementWord;
+                const firstChar = match[0];
+                if (firstChar === firstChar.toLowerCase() &&
+                    firstChar !== firstChar.toUpperCase()) return repLowerStart;
+                if (firstChar === firstChar.toUpperCase() &&
+                    firstChar !== firstChar.toLowerCase()) return repUpperStart;
+                return replacementWord;
+            });
+        }
+
+        // === ЦИКЛ ПО ОФФЕРАМ ===
+        for (let i = 1; i < offerChunks.length; i++) {
+            const chunk = offerChunks[i];
+
+            const nameMatch = chunk.match(reName);
+            if (!nameMatch) continue;
+            const productName = nameMatch[1].replace(/\s+/g, ' ').trim();
+
+            // Определяем целевой текст для поиска
+            let targetText;
+            if (searchTarget === 'name') {
+                targetText = productName.toLowerCase();
+            } else {
+                const catMatch = chunk.match(reCat);
+                if (!catMatch) continue;
+                targetText = decodeXmlEntities(
+                    catMatch[1].replace(/\s+/g, ' ').trim()
+                ).toLowerCase();
+            }
+
+            // Ищем первое совпадение ключевого слова
+            let matchedKeyword = null;
+            if (matchMode === 'exact') {
+                for (let k = 0; k < keywords.length; k++) {
+                    if (targetText === keywords[k]) {
+                        matchedKeyword = keywords[k];
+                        break;
+                    }
+                }
+            } else {
+                for (let k = 0; k < keywords.length; k++) {
+                    if (targetText.indexOf(keywords[k]) !== -1) {
+                        matchedKeyword = keywords[k];
+                        break;
+                    }
+                }
+            }
+            if (!matchedKeyword) continue;
+
+            // Извлекаем ID оффера
+            const idMatch = chunk.match(reId);
+            const originalId = idMatch ? idMatch[1] : `unknown_${generatedOffers.length}`;
+            const safeName = productName.replace(/;/g, ',');
+
+            // Выбираем приставки/суффиксы:
+            // - Если пользователь ввёл свои — используем их
+            // - Иначе берём из нейро-словаря
+            const dictEntry = pickDictionaryEntry(productName, matchedKeyword);
+            const prefixPool = userPrefixes.length > 0 ? userPrefixes : dictEntry.pre;
+            const suffixPool = userSuffixes.length > 0 ? userSuffixes : dictEntry.suf;
+
+            // Генерируем 4 варианта по разным шаблонам
+            const variants = new Array(4);
+
+            for (let v = 0; v < 4; v++) {
+                const baseWithSynonym = (v < replaceCount && reSynonym)
+                    ? applySynonym(safeName)
+                    : safeName;
+
+                const prefix = prefixPool[v % prefixPool.length];
+                const suffix = suffixPool[v % suffixPool.length];
+
+                let finalName;
+                if      (v === 0) finalName = buildVariantName(prefix, baseWithSynonym, '');      // только приставка
+                else if (v === 1) finalName = buildVariantName('',     baseWithSynonym, suffix);  // только суффикс
+                else if (v === 2) finalName = buildVariantName(prefix, baseWithSynonym, suffix);  // оба
+                else {
+                    // 4-й: берём другую комбинацию из пула, чтобы было разнообразие
+                    const altPrefix = prefixPool[(v + 1) % prefixPool.length];
+                    const altSuffix = suffixPool[(v + 1) % suffixPool.length];
+                    finalName = buildVariantName(altPrefix, baseWithSynonym, altSuffix);
+                }
+
+                variants[v] = {
+                    newId: `${originalId}-0${v + 1}`,
+                    newName: finalName
+                };
+            }
+
+            // Защита от точных дублей среди 4 вариантов
+            const seenNames = new Set();
+            for (let v = 0; v < 4; v++) {
+                if (seenNames.has(variants[v].newName)) {
+                    // Пробуем подобрать альтернативу
+                    for (let t = 0; t < prefixPool.length * suffixPool.length; t++) {
+                        const altPrefix = prefixPool[(v + t + 1) % prefixPool.length];
+                        const altSuffix = suffixPool[(v + t + 2) % suffixPool.length];
+                        const altName = buildVariantName(altPrefix, safeName, altSuffix);
+                        if (!seenNames.has(altName)) {
+                            variants[v].newName = altName;
+                            break;
+                        }
+                    }
+                }
+                seenNames.add(variants[v].newName);
+            }
+
+            generatedOffers.push({
+                originalId: originalId,
+                originalBlock: chunk,
+                originalName: productName,
+                variants: variants
+            });
+        }
+
+        const matchedCount = generatedOffers.length;
+        if (matchedCount === 0) {
+            return showStatus('error', `❌ Товары по вашим запросам не найдены.`);
+        }
+
+        showStatus('info',
+            `⏳ Рендерю таблицу (${matchedCount} товаров, ${matchedCount * 4} дублей)...`);
+
+        // === РЕНДЕР ТАБЛИЦЫ ЧАНКАМИ ===
+        const body = document.getElementById('resultBody');
+        body.innerHTML = '';
+        document.getElementById('resultsContainer').classList.add('visible');
+        document.getElementById('exportPanel').classList.add('visible');
+
+        const CHUNK_SIZE = matchedCount > 500 ? 200 : matchedCount;
+        let offset = 0;
+
+        function renderChunk() {
+            const end = Math.min(offset + CHUNK_SIZE, matchedCount);
+            const rowsHtml = new Array(end - offset);
+
+            for (let i = offset; i < end; i++) {
+                const offer = generatedOffers[i];
+                const variantRows = new Array(4);
+
+                for (let v = 0; v < 4; v++) {
+                    const variant = offer.variants[v];
+                    const nameAttr = escapeAttr(variant.newName);
+                    const idText   = escapeHtml(variant.newId);
+
+                    variantRows[v] =
+                        '<div class="variant-row">' +
+                            '<span class="id-badge" data-copy="' + idText + '">' +
+                                idText +
+                            '</span>' +
+                            '<div class="input-wrap">' +
+                                '<input type="text" class="edit-input" ' +
+                                    'data-oi="' + i + '" data-vi="' + v + '" ' +
+                                    'value="' + nameAttr + '">' +
+                                '<span class="char-counter"></span>' +
+                            '</div>' +
+                        '</div>';
+                }
+
+                rowsHtml[i - offset] =
+                    '<tr>' +
+                        '<td class="col-id">' + escapeHtml(offer.originalId) + '</td>' +
+                        '<td>' + escapeHtml(offer.originalName) + '</td>' +
+                        '<td>' + variantRows.join('') + '</td>' +
+                    '</tr>';
+            }
+
+            body.insertAdjacentHTML('beforeend', rowsHtml.join(''));
+            offset = end;
+
+            if (offset < matchedCount) {
+                showStatus('info', `⏳ Рендерю таблицу: ${offset} / ${matchedCount}...`);
+                requestAnimationFrame(renderChunk);
+            } else {
+                initCountersInChunks(function() {
+                    showStatus('success',
+                        `🎉 <strong>Успех!</strong> Найдено товаров: ` +
+                        `<strong>${matchedCount}</strong> шт. Создано уникальных дублей: ` +
+                        `<strong>${matchedCount * 4}</strong> шт.`);
+                });
+            }
+        }
+
+        requestAnimationFrame(renderChunk);
+
+    } catch (err) {
+        showStatus('error', `❌ <strong>Ошибка:</strong> ${escapeHtml(err.message)}`);
+    }
+}
+
+/* ============================================================================
+   ИНИЦИАЛИЗАЦИЯ СЧЁТЧИКОВ СИМВОЛОВ (чанками — не блокирует UI)
+   ============================================================================ */
+function initCountersInChunks(onDone) {
+    const inputs = document.querySelectorAll('#resultBody .edit-input');
+    const total = inputs.length;
+    let index = 0;
+    const STEP = 800;
+
+    function runStep() {
+        const end = Math.min(index + STEP, total);
+        for (let i = index; i < end; i++) {
+            updateCounter(inputs[i]);
+        }
+        index = end;
+        if (index < total) {
+            requestAnimationFrame(runStep);
+        } else if (onDone) {
+            onDone();
+        }
+    }
+
+    if (total === 0) {
+        if (onDone) onDone();
+        return;
+    }
+    requestAnimationFrame(runStep);
+}
+
+/* ============================================================================
+   ОБНОВЛЕНИЕ СЧЁТЧИКА СИМВОЛОВ
+   Подсветка появляется ТОЛЬКО при превышении лимита.
+   ============================================================================ */
+function updateCounter(input) {
+    if (!input) return;
+
+    const counter = input.nextElementSibling;
+    if (!counter) return;
+
+    const length = input.value.length;
+    const isOver = length > MAX_LEN;
+    const label = (isOver ? '⚠ ' : '') + length + ' / ' + MAX_LEN;
+
+    if (counter.textContent !== label) {
+        counter.textContent = label;
+    }
+
+    if (isOver) {
+        if (!input.classList.contains('over')) {
+            input.classList.add('over');
+            counter.classList.add('over');
+        }
+    } else {
+        if (input.classList.contains('over')) {
+            input.classList.remove('over');
+            counter.classList.remove('over');
+        }
+    }
+}
+
+function refreshAllCounters() {
+    const inputs = document.querySelectorAll('#resultBody .edit-input');
+    let i = 0;
+    const total = inputs.length;
+    const STEP = 800;
+
+    function runStep() {
+        const end = Math.min(i + STEP, total);
+        for (; i < end; i++) {
+            updateCounter(inputs[i]);
+        }
+        if (i < total) requestAnimationFrame(runStep);
+    }
+
+    if (total) requestAnimationFrame(runStep);
+
+    const btn = document.getElementById('fitBtn');
+    if (btn) btn.textContent = `📏 Подогнать всё под ${MAX_LEN}`;
+}
+
+function applyMaxLenFromInput() {
+    const el = document.getElementById('maxLenInput');
+    let value = parseInt(el.value, 10);
+
+    if (isNaN(value)) value = 56;
+    if (value < 20)   value = 20;
+    if (value > 200)  value = 200;
+
+    el.value = value;
+    MAX_LEN = value;
+
+    try { localStorage.setItem('feedMaster.maxLen', String(value)); } catch (err) {}
+    refreshAllCounters();
+}
+
+/* ============================================================================
+   ПОДГОНКА ВСЕХ ВАРИАНТОВ ПОД ЛИМИТ
+   ============================================================================ */
+function fitAllToLimit() {
+    const inputs = document.querySelectorAll('#resultBody .edit-input');
+    const reTail = /\s+(для|от|до|без|из|с|в|на|по|и|или)$/i;
+    const minCut = Math.floor(MAX_LEN * 0.35);
+
+    let changed = 0;
+    let i = 0;
+    const total = inputs.length;
+    const STEP = 500;
+
+    function runStep() {
+        const end = Math.min(i + STEP, total);
+
+        for (; i < end; i++) {
+            const input = inputs[i];
+            if (input.value.length <= MAX_LEN) continue;
+
+            let trimmed = input.value.trim();
+            const cut = trimmed.slice(0, MAX_LEN);
+            const lastSpace = cut.lastIndexOf(' ');
+
+            trimmed = (lastSpace > minCut ? cut.slice(0, lastSpace) : cut).trim();
+            trimmed = trimmed.replace(reTail, '').trim();
+
+            input.value = trimmed;
+
+            // Синхронизируем с данными
+            const offerIndex   = +input.dataset.oi;
+            const variantIndex = +input.dataset.vi;
+            if (!isNaN(offerIndex) && !isNaN(variantIndex) &&
+                generatedOffers[offerIndex]) {
+                generatedOffers[offerIndex].variants[variantIndex].newName = trimmed;
+            }
+
+            updateCounter(input);
+            changed++;
+        }
+
+        if (i < total) {
+            requestAnimationFrame(runStep);
+        } else {
+            if (changed > 0) {
+                showStatus('success',
+                    `✂️ Подогнано вариантов: <strong>${changed}</strong> шт. ` +
+                    `Все ≤ ${MAX_LEN} символов.`);
+            } else {
+                showStatus('info',
+                    `👍 Все варианты уже укладываются в ${MAX_LEN} символов.`);
+            }
+        }
+    }
+
+    if (total) requestAnimationFrame(runStep);
+}
+
+/* ============================================================================
+   ВЫГРУЗКА CSV
+   ============================================================================ */
+function downloadCSV() {
+    const parts = ["\uFEFFOriginal_ID;New_ID;Edited_Name\n"];
+
+    for (let i = 0; i < generatedOffers.length; i++) {
+        const offer = generatedOffers[i];
+        for (let v = 0; v < 4; v++) {
+            const variant = offer.variants[v];
+            const safeName = variant.newName.replace(/;/g, ',');
+            parts.push(offer.originalId + ';' + variant.newId + ';' + safeName + '\n');
+        }
+    }
+
+    const blob = new Blob(parts, { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'feed_variants_edited.csv';
+    link.click();
+
+    setTimeout(() => URL.revokeObjectURL(link.href), 1500);
+}
+
+/* ============================================================================
+   ВЫГРУЗКА ТОЛЬКО НОВЫХ ОФФЕРОВ
+   ============================================================================ */
+function buildPartialXML() {
+    showStatus('warning', '⏳ Формирую файл с новыми офферами...');
+
+    setTimeout(function() {
+        const parts = [];
+        const reName = /<name>[\s\S]*?<\/name>/i;
+
+        for (let i = 0; i < generatedOffers.length; i++) {
+            const offer = generatedOffers[i];
+            const reIdBlock = new RegExp(
+                `id=["']${escapeRegExp(offer.originalId)}["']`, 'i'
+            );
+
+            for (let v = 0; v < 4; v++) {
+                const variant = offer.variants[v];
+                const safeXmlName = escapeXml(variant.newName);
+                let block = offer.originalBlock;
+                block = block.replace(reIdBlock, `id="${variant.newId}"`);
+                block = block.replace(reName, `<name>${safeXmlName}</name>`);
+                parts.push('<offer ' + block + '\n');
+            }
+        }
+
+        const blob = new Blob(parts, { type: 'application/xml;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = 'only_new_offers.xml';
+        link.click();
+
+        setTimeout(() => URL.revokeObjectURL(link.href), 1500);
+        showStatus('success', '✅ Файл с новыми офферами скачан!');
+    }, 30);
+}
+
+/* ============================================================================
+   ВЫГРУЗКА ПОЛНОГО ФИДА (ОРИГИНАЛ + НОВЫЕ ОФФЕРЫ)
+   ============================================================================ */
+function buildXML() {
+    showStatus('info', '⏳ Собираю полный новый XML-фид...');
+
+    setTimeout(function() {
+        const parts = [];
+        const reName = /<name>[\s\S]*?<\/name>/i;
+
+        for (let i = 0; i < generatedOffers.length; i++) {
+            const offer = generatedOffers[i];
+            const reIdBlock = new RegExp(
+                `id=["']${escapeRegExp(offer.originalId)}["']`, 'i'
+            );
+
+            for (let v = 0; v < 4; v++) {
+                const variant = offer.variants[v];
+                const safeXmlName = escapeXml(variant.newName);
+                let block = offer.originalBlock;
+                block = block.replace(reIdBlock, `id="${variant.newId}"`);
+                block = block.replace(reName, `<name>${safeXmlName}</name>`);
+                parts.push('<offer ' + block);
+            }
+        }
+
+        const newOffersXml = parts.join('');
+        const finalXml = originalXmlContent.replace(
+            '</offers>',
+            newOffersXml + '\n</offers>'
+        );
+
+        const blob = new Blob([finalXml], { type: 'application/xml;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = 'fazasporta_feed_expanded.xml';
+        link.click();
+
+        setTimeout(() => URL.revokeObjectURL(link.href), 1500);
+        showStatus('success', '✅ Готовый ПОЛНЫЙ XML-фид успешно собран и скачан!');
+    }, 30);
+}
+
+/* ============================================================================
+   КОПИРОВАНИЕ ID В БУФЕР ОБМЕНА
+   ============================================================================ */
+function copyIdToClipboard(element, id) {
+    function showSuccess() {
+        element.classList.add('copied');
+        const previousText = element.textContent;
+        element.textContent = '✓';
+        setTimeout(function() {
+            element.classList.remove('copied');
+            element.textContent = previousText;
+        }, 700);
+    }
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(id)
+            .then(showSuccess)
+            .catch(() => fallbackCopy(id, showSuccess));
+    } else {
+        fallbackCopy(id, showSuccess);
+    }
+}
+
+function fallbackCopy(text, onSuccess) {
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.style.position = 'fixed';
+    textarea.style.top = '-1000px';
+    document.body.appendChild(textarea);
+    textarea.select();
+
+    try { document.execCommand('copy'); } catch (err) {}
+    document.body.removeChild(textarea);
+
+    if (onSuccess) onSuccess();
+}
+
+/* ============================================================================
+   ИНИЦИАЛИЗАЦИЯ UI ПРИ ЗАГРУЗКЕ СТРАНИЦЫ
+   ============================================================================ */
+document.addEventListener('DOMContentLoaded', function() {
+
+    // --- Переключатель темы ---
+    const currentTheme = document.documentElement.getAttribute('data-theme') === 'dark'
+                         ? 'dark' : 'light';
+    const themeBtn = document.getElementById('themeToggle');
+    themeBtn.textContent = currentTheme === 'dark' ? '☀️' : '🌙';
+    themeBtn.addEventListener('click', toggleTheme);
+
+    // --- Загрузка файла + парсинг категорий ---
+    const fileInput = document.getElementById('fileInput');
+    fileInput.addEventListener('change', function(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        showStatus('info', '⏳ Читаю файл и извлекаю категории...');
+
+        const reader = new FileReader();
+        reader.onload = function(ev) {
+            originalXmlContent = ev.target.result;
+            feedCategories = extractCategoriesFromXml(originalXmlContent);
+            selectedCategories = new Set();
+            msSearchQuery = '';
+
+            document.getElementById('msSearch').value = '';
+            renderCategoryList();
+            renderChips();
+
+            const info = document.getElementById('fileInfo');
+            info.style.display = 'block';
+            info.innerHTML =
+                `📄 <strong>${escapeHtml(file.name)}</strong> — ` +
+                `${(file.size / 1024).toFixed(1)} КБ · ` +
+                `найдено категорий в фиде: <strong>${feedCategories.length}</strong>`;
+
+            if (feedCategories.length > 0) {
+                showStatus('success',
+                    `✅ Файл загружен. Категорий в фиде: ` +
+                    `<strong>${feedCategories.length}</strong>. ` +
+                    `Можете выбрать их из списка.`);
+            } else {
+                showStatus('info',
+                    `✅ Файл загружен. Категории ` +
+                    `&lt;param name="Категория"&gt; в фиде не найдены — ` +
+                    `используйте ручной ввод.`);
+            }
+        };
+        reader.onerror = function() {
+            showStatus('error', '❌ Не удалось прочитать файл');
+        };
+        reader.readAsText(file);
+    });
+
+    // --- Переключение табов "Из списка / Вручную" ---
+    const tabList    = document.getElementById('tabList');
+    const tabManual  = document.getElementById('tabManual');
+    const panelList   = document.getElementById('panelList');
+    const panelManual = document.getElementById('panelManual');
+
+    function activateTab(tabName) {
+        currentSearchMode = tabName;
+        tabList.classList.toggle('active',   tabName === 'list');
+        tabManual.classList.toggle('active', tabName === 'manual');
+        panelList.classList.toggle('active',   tabName === 'list');
+        panelManual.classList.toggle('active', tabName === 'manual');
+    }
+
+    tabList.addEventListener('click', function() {
+        if (!tabList.hasAttribute('disabled')) activateTab('list');
+    });
+    tabManual.addEventListener('click', function() {
+        activateTab('manual');
+    });
+
+    // Доступность таба "Из списка" зависит от режима поиска
+    function syncTabsWithSearchTarget() {
+        const selected = document.querySelector('input[name="searchTarget"]:checked');
+        if (!selected || selected.value !== 'category') {
+            tabList.setAttribute('disabled', 'true');
+            tabList.title = 'Доступно только в режиме «В категории»';
+            if (currentSearchMode === 'list') activateTab('manual');
+        } else {
+            tabList.removeAttribute('disabled');
+            tabList.title = '';
+        }
+    }
+
+    document.querySelectorAll('input[name="searchTarget"]').forEach(function(radio) {
+        radio.addEventListener('change', syncTabsWithSearchTarget);
+    });
+    syncTabsWithSearchTarget();
+
+    // --- Мультиселект категорий ---
+    document.getElementById('msSearch').addEventListener('input', function(event) {
+        msSearchQuery = event.target.value;
+        renderCategoryList();
+    });
+
+    document.getElementById('msList').addEventListener('click', function(event) {
+        const item = event.target.closest('.ms-item');
+        if (!item) return;
+        event.preventDefault();
+        const name = item.getAttribute('data-cat');
+        if (name) toggleCategory(name);
+    });
+
+    // Кнопки "Выбрать все / Снять / Инвертировать" (учитывают фильтр поиска)
+    document.getElementById('msAll').addEventListener('click', function() {
+        const query = msSearchQuery.toLowerCase().trim();
+        const target = query
+            ? feedCategories.filter(c => c.name.toLowerCase().indexOf(query) !== -1)
+            : feedCategories;
+        target.forEach(c => selectedCategories.add(c.name.toLowerCase()));
+        renderCategoryList();
+        renderChips();
+    });
+
+    document.getElementById('msNone').addEventListener('click', function() {
+        const query = msSearchQuery.toLowerCase().trim();
+        if (query) {
+            const target = feedCategories.filter(
+                c => c.name.toLowerCase().indexOf(query) !== -1
+            );
+            target.forEach(c => selectedCategories.delete(c.name.toLowerCase()));
+        } else {
+            selectedCategories.clear();
+        }
+        renderCategoryList();
+        renderChips();
+    });
+
+    document.getElementById('msInvert').addEventListener('click', function() {
+        const query = msSearchQuery.toLowerCase().trim();
+        const target = query
+            ? feedCategories.filter(c => c.name.toLowerCase().indexOf(query) !== -1)
+            : feedCategories;
+        target.forEach(function(c) {
+            const key = c.name.toLowerCase();
+            if (selectedCategories.has(key)) selectedCategories.delete(key);
+            else selectedCategories.add(key);
+        });
+        renderCategoryList();
+        renderChips();
+    });
+
+    // Удаление из чипсов
+    document.getElementById('msChips').addEventListener('click', function(event) {
+        const close = event.target.closest('.chip-x');
+        if (!close) return;
+        const key = close.getAttribute('data-remove');
+        if (key) {
+            selectedCategories.delete(key);
+            renderCategoryList();
+            renderChips();
+        }
+    });
+
+    // --- Таблица результатов: event delegation ---
+    const resultBody = document.getElementById('resultBody');
+
+    // Редактирование вариантов (обновляем и DOM, и данные в массиве)
+    resultBody.addEventListener('input', function(event) {
+        const target = event.target;
+        if (target && target.classList && target.classList.contains('edit-input')) {
+            const offerIndex   = +target.dataset.oi;
+            const variantIndex = +target.dataset.vi;
+            if (!isNaN(offerIndex) && !isNaN(variantIndex) &&
+                generatedOffers[offerIndex]) {
+                generatedOffers[offerIndex].variants[variantIndex].newName = target.value;
+            }
+            updateCounter(target);
+        }
+    });
+
+    // Копирование ID по клику на бейдж
+    resultBody.addEventListener('click', function(event) {
+        const badge = event.target.closest && event.target.closest('.id-badge');
+        if (!badge) return;
+        const id = badge.getAttribute('data-copy') || badge.textContent;
+        copyIdToClipboard(badge, id);
+    });
+
+    // --- Восстановление лимита символов из localStorage ---
+    try {
+        const saved = parseInt(localStorage.getItem('feedMaster.maxLen'), 10);
+        if (!isNaN(saved) && saved >= 20 && saved <= 200) {
+            MAX_LEN = saved;
+            document.getElementById('maxLenInput').value = saved;
+        }
+    } catch (err) {}
+
+    const limitInput = document.getElementById('maxLenInput');
+    limitInput.addEventListener('input',  applyMaxLenFromInput);
+    limitInput.addEventListener('change', applyMaxLenFromInput);
+
+    const fitButton = document.getElementById('fitBtn');
+    if (fitButton) fitButton.textContent = `📏 Подогнать всё под ${MAX_LEN}`;
+});
+</script>
+</body>
+</html>
